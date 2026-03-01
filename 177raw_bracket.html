@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>177 RAW · TOURNAMENT</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #07090b;
+  --card:     #111518;
+  --border:   #2a3040;
+  --accent:   #d4a84c;
+  --green:    #3dbf68;
+  --green-bg: rgba(61,191,104,0.15);
+  --red-bg:   rgba(200,60,60,0.12);
+  --text:     #c0bdb5;
+  --dim:      #5a6070;
+  --white:    #eceae4;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace;min-height:100vh;overflow-x:auto}
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.05) 3px,rgba(0,0,0,0.05) 4px);pointer-events:none;z-index:999}
+
+header{text-align:center;padding:18px 24px 16px;border-bottom:1px solid var(--border);background:radial-gradient(ellipse at 50% 0%,rgba(201,168,76,0.07) 0%,transparent 65%)}
+.badge{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:6px;color:var(--accent);border:1px solid rgba(201,168,76,.3);padding:4px 16px;display:inline-block;margin-bottom:10px}
+h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(48px,6vw,72px);letter-spacing:10px;color:#fff;line-height:1;text-shadow:0 0 50px rgba(201,168,76,.2)}
+.sub{font-size:13px;letter-spacing:4px;color:var(--dim);margin-top:6px}
+.pills{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:8px}
+.pill{font-size:11px;letter-spacing:2px;border:1px solid var(--border);color:var(--dim);padding:4px 12px}
+.pill.hi{border-color:rgba(201,168,76,.4);color:var(--accent)}
+
+.toolbar{display:flex;justify-content:space-between;align-items:center;padding:8px 28px;border-bottom:1px solid var(--border)}
+.toolbar-note{font-size:12px;letter-spacing:2px;color:var(--dim)}
+.btn-reset{background:none;border:1px solid var(--border);color:var(--dim);font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:3px;padding:5px 14px;cursor:pointer;transition:all .2s}
+.btn-reset:hover{border-color:#cc4444;color:#cc4444}
+/* ── LOCK / AUTH ── */
+.lock-btn{background:none;border:1px solid var(--border);color:var(--dim);font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:3px;padding:5px 16px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:8px}
+.lock-btn:hover{border-color:var(--accent);color:var(--accent)}
+.lock-btn.unlocked{border-color:var(--green);color:var(--green)}
+.lock-btn.unlocked:hover{border-color:#cc4444;color:#cc4444}
+.lock-dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0}
+
+/* Modal overlay */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:2000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay.hidden{display:none}
+.modal{background:#0f1318;border:1px solid #2a3040;padding:32px 36px;min-width:320px;position:relative}
+.modal::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent)}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:6px;color:var(--accent);margin-bottom:6px}
+.modal-sub{font-size:10px;letter-spacing:2px;color:var(--dim);margin-bottom:20px}
+.modal input[type=password]{width:100%;background:#080a0c;border:1px solid #2a3040;color:var(--white);font-family:'Share Tech Mono',monospace;font-size:15px;padding:10px 14px;outline:none;caret-color:var(--accent);letter-spacing:4px}
+.modal input[type=password]:focus{border-color:var(--accent)}
+.modal-btns{display:flex;gap:10px;margin-top:16px}
+.modal-confirm{flex:1;background:var(--accent);color:#000;border:none;font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:4px;padding:10px;cursor:pointer;transition:all .2s}
+.modal-confirm:hover{background:#e8c060}
+.modal-cancel{background:none;border:1px solid #2a3040;color:var(--dim);font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:2px;padding:10px 18px;cursor:pointer;transition:all .2s}
+.modal-cancel:hover{border-color:#cc4444;color:#cc4444}
+.modal-error{font-size:10px;color:#cc4444;letter-spacing:2px;margin-top:8px;min-height:14px}
+
+/* View-only state */
+body.view-only .player input{pointer-events:none}
+body.view-only .player{cursor:default}
+body.view-only .win-btn{display:none!important}
+body.view-only .btn-reset{display:none}
+body.view-only .bo3-btn{pointer-events:none;opacity:0.3}
+body.view-only .toolbar-note{color:var(--dim)}
+
+
+.wrap{padding:20px 28px 24px;overflow-x:auto}
+.bracket{display:flex;align-items:flex-start;position:relative;width:100%;gap:0;min-width:700px}
+#svg-lines{position:absolute;top:0;left:0;pointer-events:none;overflow:visible;z-index:0}
+
+.col{display:flex;flex-direction:column;align-items:center;gap:12px;position:relative;z-index:1}
+.col-r1{flex:2.2;min-width:0}
+.col-r2{flex:2;min-width:0;margin-left:44px}
+.col-sf{flex:2;min-width:0;margin-left:44px}
+.col-final{flex:2.2;min-width:0;margin-left:44px}
+
+.col-label{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:5px;color:var(--accent);text-align:center;padding-bottom:11px;border-bottom:1px solid var(--border);width:100%;margin-bottom:10px}
+.col-label small{display:block;font-size:11px;letter-spacing:3px;color:var(--dim);margin-top:4px}
+
+.match{width:100%;border:1px solid var(--border);background:var(--card);position:relative;box-shadow:0 2px 12px rgba(0,0,0,0.3)}
+.match.final-card{border-color:rgba(201,168,76,.35)}
+.match-num{font-size:11px;letter-spacing:2px;color:#9aadbe;padding:7px 14px 6px;background:#0d1015;border-bottom:1px solid var(--border);font-weight:400}
+.match.final-card .match-num{color:var(--accent);background:rgba(201,168,76,.08)}
+
+.player{display:flex;align-items:center;height:50px;padding:0 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;position:relative;gap:6px}
+.player:last-of-type{border-bottom:none}
+.player:hover{background:rgba(255,255,255,.03)}
+.player.winner{background:var(--green-bg)}
+.player.loser{background:var(--red-bg)}
+
+.player input{flex:1;background:none;border:none;outline:none;font-family:'Share Tech Mono',monospace;font-size:17px;color:var(--white);cursor:text;caret-color:var(--accent);min-width:0}
+.player input::placeholder{color:var(--dim);font-size:13px}
+.player.winner input{color:var(--green)}
+.player.loser input{color:#3a2a2a}
+
+.win-mark{font-size:13px;color:var(--green);flex-shrink:0;opacity:0;transition:opacity .2s}
+.player.winner .win-mark{opacity:1}
+
+.win-btn{position:absolute;right:5px;background:none;border:1px solid transparent;color:transparent;font-size:8px;letter-spacing:1px;padding:1px 5px;cursor:pointer;font-family:'Share Tech Mono',monospace;transition:all .15s}
+.match:hover .win-btn{border-color:var(--border);color:var(--dim)}
+.match:hover .win-btn:hover{border-color:var(--green);color:var(--green)}
+.player.winner .win-btn,.player.loser .win-btn{display:none}
+
+.bye-slot{width:100%;border:1px dashed #253040;background:#0d1015;display:flex;align-items:center;justify-content:center;height:109px;font-size:11px;letter-spacing:2px;color:#6a7888;text-align:center;line-height:1.8}
+
+.bo3-wrap{border-top:1px solid var(--border);background:#0a0b0c;padding:8px 0 6px}
+.bo3-lbl{text-align:center;font-size:11px;letter-spacing:2px;color:var(--dim);margin-bottom:6px}
+.bo3-row{display:flex;align-items:center;justify-content:center}
+.bo3-side{display:flex;align-items:center;gap:5px;flex:1;justify-content:center}
+.bo3-btn{width:30px;height:30px;background:none;border:1px solid var(--border);color:var(--dim);font-size:17px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:monospace;transition:all .15s}
+.bo3-btn:hover{border-color:var(--accent);color:var(--accent)}
+.bo3-num{font-family:'Bebas Neue',sans-serif;font-size:38px;color:#fff;min-width:28px;text-align:center;line-height:1;transition:color .2s}
+.bo3-num.lead{color:var(--green)}
+.bo3-sep{font-size:14px;color:var(--dim);padding:0 8px}
+
+.champ-box{display:none;border-top:1px solid rgba(201,168,76,.3);background:rgba(201,168,76,.07);text-align:center;padding:10px 8px 8px}
+.champ-box.show{display:block}
+.champ-trophy{font-size:22px}
+.champ-lbl{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:5px;color:var(--accent);display:block;margin-top:2px}
+.champ-name{font-size:19px;color:#fff;display:block;margin-top:5px}
+
+
+.legend{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;padding:10px 24px 16px;font-size:11px;letter-spacing:2px;color:var(--dim);border-top:1px solid var(--border)}
+.legend b{color:var(--accent)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="badge">177 RAW · REGIMENT OF ARMED WILL</div>
+  <h1>TOURNAMENT</h1>
+  <div class="sub">10 PLAYERS · SINGLE ELIMINATION</div>
+  <div class="pills">
+    <span class="pill">ROUND 1 — BO1</span>
+    <span class="pill">ROUND 2 — BO1</span>
+    <span class="pill">SEMIFINAL — BO1</span>
+    <span class="pill hi">★ GRAND FINAL — BO3</span>
+  </div>
+</header>
+
+<!-- AUTH MODAL -->
+<div class="modal-overlay hidden" id="modal">
+  <div class="modal">
+    <div class="modal-title">ADMIN ACCESS</div>
+    <div class="modal-sub">ENTER PASSWORD TO EDIT THE BRACKET</div>
+    <input type="password" id="pwd-input" placeholder="••••••••" onkeydown="if(event.key==='Enter')confirmPwd()">
+    <div class="modal-error" id="pwd-error"></div>
+    <div class="modal-btns">
+      <button class="modal-confirm" onclick="confirmPwd()">UNLOCK</button>
+      <button class="modal-cancel" onclick="closeModal()">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+<div class="toolbar">
+  <span class="toolbar-note" id="toolbar-note">🔒 VIEW ONLY — BRACKET IS LOCKED</span>
+  <div style="display:flex;gap:10px;align-items:center">
+    <button class="btn-reset" onclick="resetAll()">⟳ RESET</button>
+    <button class="lock-btn" id="lock-btn" onclick="toggleLock()">
+      <span class="lock-dot"></span>
+      <span id="lock-label">UNLOCK</span>
+    </button>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="bracket" id="bracket">
+    <svg id="svg-lines" width="100%" height="100%"></svg>
+
+    <!-- ══════════ ROUND 1 (10 players, 5 matches) ══════════ -->
+    <div class="col col-r1">
+      <div class="col-label">ROUND 1<small>BEST OF 1 · 5 MATCHES</small></div>
+
+      <div class="match" id="card-r1a">
+        <div class="match-num">MATCH 1</div>
+        <div class="player" id="r1a-top" onclick="pick('r1a','top')">
+          <input type="text" placeholder="Player 1" oninput="S.r1a.top=this.value">
+          <span class="win-mark">✓</span>
+          <button class="win-btn" onclick="ev(event);pick('r1a','top')">WIN</button>
+        </div>
+        <div class="player" id="r1a-bot" onclick="pick('r1a','bot')">
+          <input type="text" placeholder="Player 2" oninput="S.r1a.bot=this.value">
+          <span class="win-mark">✓</span>
+          <button class="win-btn" onclick="ev(event);pick('r1a','bot')">WIN</button>
+        </div>
+      </div>
+
+      <div class="match" id="card-r1b">
+        <div class="match-num">MATCH 2</div>
+        <div class="player" id="r1b-top" onclick="pick('r1b','top')">
+          <input type="text" placeholder="Player 3" oninput="S.r1b.top=this.value">
+          <span class="win-mark">✓</span>
+          <button class="win-btn" onclick="ev(event);pick('r1b','top')">WIN</button>
+        </div>
+        <div class="player" id="r1b-bot" onclick="pick('r1b','bot')">
+          <input type="text" placeholder="Player 4" oninput="S.r1b.bot=this.value">
+          <span class="win-mark">✓</span>
+          <button class="win-btn" onclick="ev(event);pick('r1b','bot')">WIN</button>
+        </div>
+      </div>
+
+      <div class="match" id="card-r1c">
+        <div class="match-num">MATCH 3</div>
+        <div class="player" id="r1c-top" onclick="pick('r1c','top')">
+          <input type="text" placeholder="Player 5" oninput="S.r1c.top=this.value">
+          <span class="win-mark">✓</span>
+          <button class="win-btn" onclick="ev(event);pick('r1c','top')">WIN</button>
+        </div>
+        <div class="player" id="r1c-bot" onclick="pick('r1c','bot')">
+          <input type="text" placeholder="Player 6" oninput="S.r1c.bot=this.value">
+          <span class="win-mark">✓</span>
+          <button class="win-btn" onclick="ev(event);pick('r1c','bot')">WIN</button>
+        </div>
+      </div>
+
+      <div class="match" id="card-r1d">
+        <div class="match-num">MATCH 4</div>
+        <div class="player" id="r1d-top" onclick="pick('r1d','top')">
+          <input type="text" placeholder="Player 7" oninput="S.r1d.top=this.value">
+          <span class="win-mark">✓</span>
+          <button class="win-btn" onclick="ev(event);pick('r1d','top')">WIN</button>
+        </div>
+        <div class="player" id="r1d-bot" onclick="pick('r1d','bot')">
+          <input type="text" placeholder="Player 8" oninput="S.r1d.bot=this.value">
+          <span class="win-mark">✓</span>
+          <button class="win-btn" onclick="ev(event);pick('r1d','bot')">WIN</button>
+        </div>
+      </div>
+
+      <div class="match" id="card-r1e">
+        <div class="match-num">MATCH 5</div>
+        <div class="player" id="r1e-top" onclick="pick('r1e','top')">
+          <input type="text" placeholder="Player 9" oninput="S.r1e.top=this.value">
+          <span class="win-mark">✓</span>
+          <button class="win-btn" onclick="ev(event);pick('r1e','top')">WIN</button>
+        </div>
+        <div class="player" id="r1e-bot" onclick="pick('r1e','bot')">
+          <input type="text" placeholder="Player 10" oninput="S.r1e.bot=this.value">
+          <span class="win-mark">✓</span>
+          <button class="win-btn" onclick="ev(event);pick('r1e','bot')">WIN</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ ROUND 2 ══════════ -->
+    <div class="col col-r2">
+      <div class="col-label">ROUND 2<small>BEST OF 1 · 2 MATCHES</small></div>
+
+      <div class="match" id="card-r2a">
+        <div class="match-num">MATCH 6 · W1 VS W2</div>
+        <div class="player" id="r2a-top" onclick="pick('r2a','top')">
+          <input type="text" placeholder="← Winner M1" id="inp-r2a-top" oninput="S.r2a.top=this.value">
+          <span class="win-mark">✓</span>
+          <button class="win-btn" onclick="ev(event);pick('r2a','top')">WIN</button>
+        </div>
+        <div class="player" id="r2a-bot" onclick="pick('r2a','bot')">
+          <input type="text" placeholder="← Winner M2" id="inp-r2a-bot" oninput="S.r2a.bot=this.value">
+          <span class="win-mark">✓</span>
+          <button class="win-btn" onclick="ev(event);pick('r2a','bot')">WIN</button>
+        </div>
+      </div>
+
+      <div class="match" id="card-r2b">
+        <div class="match-num">MATCH 7 · W3 VS W4</div>
+        <div class="player" id="r2b-top" onclick="pick('r2b','top')">
+          <input type="text" placeholder="← Winner M3" id="inp-r2b-top" oninput="S.r2b.top=this.value">
+          <span class="win-mark">✓</span>
+          <button class="win-btn" onclick="ev(event);pick('r2b','top')">WIN</button>
+        </div>
+        <div class="player" id="r2b-bot" onclick="pick('r2b','bot')">
+          <input type="text" placeholder="← Winner M4" id="inp-r2b-bot" oninput="S.r2b.bot=this.value">
+          <span class="win-mark">✓</span>
+          <button class="win-btn" onclick="ev(event);pick('r2b','bot')">WIN</button>
+        </div>
+      </div>
+
+      <!-- W5 goes directly to semifinal -->
+      <div class="bye-slot" id="bye-w5">
+        W5 · WINNER M5<br>→ DIRECT PASS TO SEMIFINAL
+      </div>
+    </div>
+
+    <!-- ══════════ SEMIFINAL ══════════ -->
+    <div class="col col-sf">
+      <div class="col-label">SEMIFINAL<small>BEST OF 1</small></div>
+
+      <!-- R2a winner goes directly to Grand Final (top slot) -->
+      <div class="bye-slot" id="bye-w6">
+        W6 · WINNER M6<br>→ DIRECT PASS TO GRAND FINAL
+      </div>
+
+      <!-- SF: R2b winner vs R1e winner -->
+      <div class="match" id="card-sf">
+        <div class="match-num">MATCH 8 · W7 VS W5</div>
+        <div class="player" id="sf-top" onclick="pick('sf','top')">
+          <input type="text" placeholder="← Winner M7" id="inp-sf-top" oninput="S.sf.top=this.value">
+          <span class="win-mark">✓</span>
+          <button class="win-btn" onclick="ev(event);pick('sf','top')">WIN</button>
+        </div>
+        <div class="player" id="sf-bot" onclick="pick('sf','bot')">
+          <input type="text" placeholder="← Winner M5" id="inp-sf-bot" oninput="S.sf.bot=this.value">
+          <span class="win-mark">✓</span>
+          <button class="win-btn" onclick="ev(event);pick('sf','bot')">WIN</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ GRAND FINAL ══════════ -->
+    <div class="col col-final">
+      <div class="col-label" style="color:#fff;border-bottom-color:rgba(201,168,76,.4)">GRAND FINAL<small style="color:var(--accent)">★ BEST OF 3</small></div>
+
+      <div class="match final-card" id="card-final">
+        <div class="match-num">MATCH 9 · FINAL · BO3</div>
+        <div class="player" id="final-top" onclick="pick('final','top')">
+          <input type="text" placeholder="← Winner M6" id="inp-final-top" oninput="S.final.top=this.value">
+          <span class="win-mark">✓</span>
+          <button class="win-btn" onclick="ev(event);pick('final','top')">WIN</button>
+        </div>
+        <div class="player" id="final-bot" onclick="pick('final','bot')">
+          <input type="text" placeholder="← Winner M8" id="inp-final-bot" oninput="S.final.bot=this.value">
+          <span class="win-mark">✓</span>
+          <button class="win-btn" onclick="ev(event);pick('final','bot')">WIN</button>
+        </div>
+        <div class="bo3-wrap">
+          <div class="bo3-lbl">SCORE · FIRST TO 2 WINS</div>
+          <div class="bo3-row">
+            <div class="bo3-side">
+              <button class="bo3-btn" onclick="adj('top',-1)">−</button>
+              <div class="bo3-num" id="sc-top">0</div>
+              <button class="bo3-btn" onclick="adj('top',+1)">+</button>
+            </div>
+            <div class="bo3-sep">:</div>
+            <div class="bo3-side">
+              <button class="bo3-btn" onclick="adj('bot',-1)">−</button>
+              <div class="bo3-num" id="sc-bot">0</div>
+              <button class="bo3-btn" onclick="adj('bot',+1)">+</button>
+            </div>
+          </div>
+        </div>
+        <div class="champ-box" id="champ-box">
+          <span class="champ-trophy">🏆</span>
+          <span class="champ-lbl">CHAMPION 177 RAW</span>
+          <span class="champ-name" id="champ-name"></span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+
+</div>
+
+<div class="legend">
+  <span>CLICK A ROW — <b>select the winner</b></span>
+  <span>CLICK AGAIN — <b>undo the pick</b></span>
+  <span><b>★</b> FINAL — update score with + / − buttons</span>
+</div>
+
+<script>
+// ── PASSWORD (change this!) ──────────────────────────────────────────
+const ADMIN_PASSWORD = 'SAVIMETOURNAM777';
+
+// ── AUTH STATE ────────────────────────────────────────────────────────
+let isUnlocked = false;
+
+function toggleLock(){
+  if(isUnlocked){ lock(); } else { openModal(); }
+}
+
+function openModal(){
+  document.getElementById('modal').classList.remove('hidden');
+  document.getElementById('pwd-input').value='';
+  document.getElementById('pwd-error').textContent='';
+  setTimeout(()=>document.getElementById('pwd-input').focus(),50);
+}
+
+function closeModal(){
+  document.getElementById('modal').classList.add('hidden');
+}
+
+function confirmPwd(){
+  const val = document.getElementById('pwd-input').value;
+  if(val === ADMIN_PASSWORD){
+    unlock();
+    closeModal();
+  } else {
+    document.getElementById('pwd-error').textContent='✕  INCORRECT PASSWORD';
+    document.getElementById('pwd-input').value='';
+    document.getElementById('pwd-input').focus();
+  }
+}
+
+function unlock(){
+  isUnlocked = true;
+  document.body.classList.remove('view-only');
+  document.getElementById('lock-btn').classList.add('unlocked');
+  document.getElementById('lock-label').textContent = 'LOCK';
+  document.getElementById('toolbar-note').textContent = 'CLICK A PLAYER ROW TO SELECT THE WINNER';
+}
+
+function lock(){
+  isUnlocked = false;
+  document.body.classList.add('view-only');
+  document.getElementById('lock-btn').classList.remove('unlocked');
+  document.getElementById('lock-label').textContent = 'UNLOCK';
+  document.getElementById('toolbar-note').textContent = '🔒 VIEW ONLY — BRACKET IS LOCKED';
+}
+
+// Close modal on overlay click
+document.getElementById('modal').addEventListener('click', function(e){
+  if(e.target === this) closeModal();
+});
+
+// ── STATE ────────────────────────────────────────────────────────────
+const S = {
+  r1a:{top:'',bot:'',w:null}, r1b:{top:'',bot:'',w:null},
+  r1c:{top:'',bot:'',w:null}, r1d:{top:'',bot:'',w:null},
+  r1e:{top:'',bot:'',w:null},
+  r2a:{top:'',bot:'',w:null}, r2b:{top:'',bot:'',w:null},
+  sf:{top:'',bot:'',w:null},
+  final:{top:'',bot:'',w:null},
+  sc:{top:0,bot:0}
+};
+
+// When match X picks a winner, push to: { match, slot }
+const FLOW = {
+  r1a:{ m:'r2a', s:'top' },
+  r1b:{ m:'r2a', s:'bot' },
+  r1c:{ m:'r2b', s:'top' },
+  r1d:{ m:'r2b', s:'bot' },
+  r1e:{ m:'sf',  s:'bot' },   // M5 winner → SF bottom slot
+  r2a:{ m:'final', s:'top' }, // M6 winner → Final top (bypasses SF)
+  r2b:{ m:'sf',  s:'top' },   // M7 winner → SF top slot
+  sf: { m:'final', s:'bot' }, // SF winner → Final bottom
+};
+
+function ev(e){ e.stopPropagation(); }
+
+// ── PICK WINNER ───────────────────────────────────────────────────────
+function pick(match, slot){
+  if(!isUnlocked) return;
+  const m = S[match];
+  if(m.w === slot){ m.w=null; render(match); cascade(match); drawLines(); return; }
+  const inp = document.querySelector(`#${match}-${slot} input`);
+  const name = inp ? inp.value.trim() : '';
+  m.w = slot;
+  render(match);
+  const flow = FLOW[match];
+  if(flow){
+    cascade(match);
+    setSlot(flow.m, flow.s, name);
+    if(S[flow.m].w){ S[flow.m].w=null; render(flow.m); cascade(flow.m); }
+    render(flow.m);
+  }
+  if(match==='final') updateChamp();
+  drawLines();
+}
+
+function setSlot(match, slot, name){
+  S[match][slot] = name;
+  const inp = document.getElementById(`inp-${match}-${slot}`);
+  if(inp) inp.value = name;
+}
+
+function cascade(match){
+  const flow = FLOW[match];
+  if(!flow) return;
+  setSlot(flow.m, flow.s, '');
+  if(S[flow.m].w){ S[flow.m].w=null; render(flow.m); cascade(flow.m); }
+  render(flow.m);
+  if(flow.m==='final') updateChamp();
+}
+
+function render(match){
+  ['top','bot'].forEach(sl=>{
+    const row = document.getElementById(`${match}-${sl}`);
+    if(!row) return;
+    row.classList.remove('winner','loser');
+    if(S[match].w===sl) row.classList.add('winner');
+    else if(S[match].w) row.classList.add('loser');
+  });
+}
+
+// ── BO3 SCORE ─────────────────────────────────────────────────────────
+function adj(side, d){
+  if(!isUnlocked) return;
+  const sc=S.sc;
+  sc[side]=Math.max(0,Math.min(2,sc[side]+d));
+  document.getElementById('sc-top').textContent=sc.top;
+  document.getElementById('sc-bot').textContent=sc.bot;
+  document.getElementById('sc-top').className='bo3-num'+(sc.top>sc.bot?' lead':'');
+  document.getElementById('sc-bot').className='bo3-num'+(sc.bot>sc.top?' lead':'');
+  if(sc.top===2&&sc.bot<2) pick('final','top');
+  if(sc.bot===2&&sc.top<2) pick('final','bot');
+}
+
+function updateChamp(){
+  const m=S.final;
+  const box=document.getElementById('champ-box');
+  const nm=document.getElementById('champ-name');
+  if(m.w){
+    const inp=document.querySelector(`#final-${m.w} input`);
+    nm.textContent=(inp&&inp.value.trim())||'???';
+    box.classList.add('show');
+  } else { box.classList.remove('show'); }
+}
+
+// ── RESET ─────────────────────────────────────────────────────────────
+function resetAll(){
+  if(!isUnlocked) return;
+  if(!confirm('Reset the entire bracket?')) return;
+  ['r1a','r1b','r1c','r1d','r1e','r2a','r2b','sf','final'].forEach(k=>{
+    S[k]={top:'',bot:'',w:null};
+  });
+  S.sc={top:0,bot:0};
+  document.querySelectorAll('.player input').forEach(i=>i.value='');
+  document.querySelectorAll('.player').forEach(p=>p.classList.remove('winner','loser'));
+  document.getElementById('sc-top').textContent='0';
+  document.getElementById('sc-bot').textContent='0';
+  document.getElementById('sc-top').className='bo3-num';
+  document.getElementById('sc-bot').className='bo3-num';
+  document.getElementById('champ-box').classList.remove('show');
+  drawLines();
+}
+
+// ── SVG CONNECTOR LINES ───────────────────────────────────────────────
+function getPos(elId, side='right'){
+  const el=document.getElementById(elId); if(!el) return null;
+  const b=document.getElementById('bracket').getBoundingClientRect();
+  const r=el.getBoundingClientRect();
+  const x = side==='right' ? r.right-b.left : r.left-b.left;
+  const y = (r.top+r.bottom)/2 - b.top;
+  return {x,y};
+}
+
+function drawLines(){
+  const svg=document.getElementById('svg-lines');
+  const br=document.getElementById('bracket');
+  svg.setAttribute('width',br.scrollWidth);
+  svg.setAttribute('height',br.scrollHeight);
+  svg.innerHTML='';
+
+  const C='#222';
+  const CG='rgba(57,168,92,0.5)';
+  const CA='rgba(201,168,76,0.4)';
+
+  function lc(match){ return S[match].w ? CG : C; }
+
+  function line(ax,ay,bx,by,col,w=1.5){
+    const mx=(ax+bx)/2;
+    const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+    p.setAttribute('d',`M${ax},${ay} H${mx} V${by} H${bx}`);
+    p.setAttribute('stroke',col); p.setAttribute('stroke-width',w); p.setAttribute('fill','none');
+    svg.appendChild(p);
+  }
+
+  function cardR(id){ return getPos('card-'+id,'right'); }
+  function rowL(id){ return getPos(id,'left'); }
+
+  // Round 1 → Round 2
+  const r1a=cardR('r1a'), r2aT=rowL('r2a-top');
+  const r1b=cardR('r1b'), r2aB=rowL('r2a-bot');
+  const r1c=cardR('r1c'), r2bT=rowL('r2b-top');
+  const r1d=cardR('r1d'), r2bB=rowL('r2b-bot');
+  const r1e=cardR('r1e'), sfB=rowL('sf-bot');
+  const r2a=cardR('r2a'), finT=rowL('final-top');
+  const r2b=cardR('r2b'), sfT=rowL('sf-top');
+  const sf=cardR('sf'),   finB=rowL('final-bot');
+
+  if(r1a&&r2aT) line(r1a.x,r1a.y, r2aT.x,r2aT.y, lc('r1a'));
+  if(r1b&&r2aB) line(r1b.x,r1b.y, r2aB.x,r2aB.y, lc('r1b'));
+  if(r1c&&r2bT) line(r1c.x,r1c.y, r2bT.x,r2bT.y, lc('r1c'));
+  if(r1d&&r2bB) line(r1d.x,r1d.y, r2bB.x,r2bB.y, lc('r1d'));
+  if(r1e&&sfB)  line(r1e.x,r1e.y, sfB.x, sfB.y,  lc('r1e'));
+  if(r2a&&finT) line(r2a.x,r2a.y, finT.x,finT.y, lc('r2a')===CG?CA:C);
+  if(r2b&&sfT)  line(r2b.x,r2b.y, sfT.x, sfT.y,  lc('r2b'));
+  if(sf&&finB)  line(sf.x, sf.y,  finB.x,finB.y,  lc('sf')===CG?CA:C);
+}
+
+window.addEventListener('load',()=>{ document.body.classList.add('view-only'); setTimeout(drawLines,150); });
+window.addEventListener('resize',()=>setTimeout(drawLines,80));
+</script>
+</body>
+</html>
